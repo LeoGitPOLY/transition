@@ -12,6 +12,7 @@ import {
     LayoutSectionProps
 } from 'chaire-lib-frontend/lib/services/dashboard/DashboardContribution';
 import BatchCalculationPanel from '../../forms/batchCalculation/BatchCalculationPanel';
+import TraclusDLPanel from '../../forms/traclusDL/traclusDLPanel';
 
 /**
  * Dashboard contribution for the 'supply/demand interaction analysis and
@@ -24,6 +25,12 @@ export class SupplyDemandAnalysisDashboardContribution extends DashboardContribu
             placement: 'primarySidebar' as const,
             section: 'batchCalculation',
             create: (props: any) => <BatchCalculationPanel {...props}></BatchCalculationPanel>
+        },
+        {
+            id: 'traclusDLRightPanel',
+            placement: 'primarySidebar' as const,
+            section: 'traclusDL',
+            create: (props: any) => <TraclusDLPanel></TraclusDLPanel>
         }
     ];
 }

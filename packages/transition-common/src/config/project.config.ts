@@ -55,6 +55,11 @@ const defaultSectionsConfig = {
         iconWhite: '/dist/images/icons/interface/od_routing_white.svg',
         iconBlack: '/dist/images/icons/interface/od_routing_black.svg'
     },
+    traclusDL: {
+        localizedTitle: 'main:TraclusDL',
+        iconWhite: '/dist/images/icons/interface/traclus_dl_black.svg',
+        iconBlack: 'dist/images/icons/interface/traclus_dl_black.svg'
+    },
     simulations: {
         localizedTitle: 'transit:simulation:Simulations',
         iconWhite: '/dist/images/icons/interface/simulation_white.svg',

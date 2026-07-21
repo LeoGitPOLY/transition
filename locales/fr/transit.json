@@ -685,7 +685,7 @@
             "DataError": "Les données en cache pour la calculateur de chemin sont invalides. Essayez de sauvegarder les données à nouveau. Si le problème persiste, contactez les administrateurs.",
             "ErrorForMode": "Le calcul de chemin pour le mode '{{mode}}' a échoué. Aucun résultat n'a été retourné.",
             "TransitBatchRouteCannotBeCalculatedBecauseError": "Une erreur s'est produite lors des calculs multiples. Veuillez vérifier le fichier d'entrée et les paramètres et ré-essayer. Si le problème persiste, contactez les administrateurs.",
-            "InvalidDepartureOrArrivalTime": "Le temps de départ ou d'arrivée est invalide", 
+            "InvalidDepartureOrArrivalTime": "Le temps de départ ou d'arrivée est invalide",
             "InvalidOriginDestinationCoordinates": "Les coordonnées d'origine et de destination sont invalides",
             "InvalidOriginCoordinates": "Les coordonnées de l'origine sont invalides",
             "InvalidDestinationCoordinates": "Les coordonnées de la destination sont invalides",
@@ -1039,6 +1039,21 @@
             "InputFileUnavailable": "Le fichier d'entrée n'existe pas pour cette tâche",
             "ErrorGettingReplayParameters": "Un problème est survenu lors de l'obtention de la configuration pour ré-exécuter un calcul",
             "ParallelCalculationsIsTooLow": "Le nombre de calculs parallèles doit être positif ou non défini pour utiliser le maximum disponible"
+        }
+    },
+    "traclusDL": {
+        "IdField": "Identifiant (optionnel)",
+        "WeightField": "Colonne du poids",
+        "XOriginField": "Colonne de la coordonnée projetée x de l'origine",
+        "YOriginField": "Colonne de la coordonnée projetée y de l'origine",
+        "XDestinationField": "Colonne de la coordonnée projetée x de la destination",
+        "YDestinationField": "Colonne de la coordonnée projetée y de la destination",
+        "error": {
+            "WeightFieldIsMissing": "La colonne du poids est requise.",
+            "XOriginFieldIsMissing": "La colonne de la coordonnée projetée x de l'origine est requise.",
+            "YOriginFieldIsMissing": "La colonne de la coordonnée projetée y de l'origine est requise.",
+            "XDestinationFieldIsMissing": "La colonne de la coordonnée projetée x de la destination est requise.",
+            "YDestinationFieldIsMissing": "La colonne de la coordonnée projetée y de la destination est requise."
         }
     },
     "preferences": {
