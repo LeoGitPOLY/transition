@@ -22,6 +22,7 @@ import placesSocketRoutes from './places.socketRoutes';
 import jobsSocketRoutes from './jobs.socketRoutes';
 import osmSocketRoutes from './osm.socketRoutes';
 import definitionsSocketRoutes from './definitions.socketRoutes';
+import traclusDLSocketRoutes from './traclusDL.socketRoutes';
 
 export default function (socket: EventEmitter, userId?: number) {
     dataSourcesSocketRoutes(socket, userId);
@@ -35,6 +36,7 @@ export default function (socket: EventEmitter, userId?: number) {
     placesSocketRoutes(socket);
     osmSocketRoutes(socket);
     definitionsSocketRoutes(socket);
+    traclusDLSocketRoutes(socket);
 
     // Routes only to add if there is an authenticated user
     if (userId !== undefined) {
