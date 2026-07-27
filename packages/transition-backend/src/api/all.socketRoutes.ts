@@ -27,7 +27,6 @@ import traclusDLSocketRoutes from './traclusDL.socketRoutes';
 export default function (socket: EventEmitter, userId?: number) {
     dataSourcesSocketRoutes(socket, userId);
     cacheSocketRoutes(socket);
-    servicesSocketRoutes(socket, userId);
     transitSocketRoutesNew(socket);
     transitObjectsSocketRoutes(socket);
     transitPathsSocketRoutes(socket);
@@ -36,12 +35,14 @@ export default function (socket: EventEmitter, userId?: number) {
     placesSocketRoutes(socket);
     osmSocketRoutes(socket);
     definitionsSocketRoutes(socket);
-    traclusDLSocketRoutes(socket);
 
     // Routes only to add if there is an authenticated user
     if (userId !== undefined) {
         gtfsSocketRoutes(socket, userId);
         jobsSocketRoutes(socket, userId);
+        servicesSocketRoutes(socket, userId);
+        traclusDLSocketRoutes(socket, userId);
+
         if (isSocketIo(socket)) {
             uploadsSocketRoutes(socket, userId);
             routingSocketRoutes(socket, userId);

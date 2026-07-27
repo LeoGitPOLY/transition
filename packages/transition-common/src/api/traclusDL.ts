@@ -7,11 +7,11 @@
 
 export class TraclusDLConstants {
     /**
-     * Socket route name to run a TraClus-DL test call. Takes a parameter
-     * of type `{ input: string }` and returns a `Status<string>` on success.
+     * Socket route name to run a TraClus-DL calculation. Takes a parameter
+     * of type `{ demand: TraclusDLOdDemandFromCsv, parameters: TraclusDLInputParameters }` and returns a `Status<TraclusDLCalculationResult>` on success.
      *
      * @static
      * @memberof TraclusDLConstants
      */
-    static readonly RUN_TEST = 'traclusDL.runTest';
+    static readonly RUN_CALCULATION = 'traclusDL.runCalculation';
 }

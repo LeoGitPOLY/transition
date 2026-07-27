@@ -18,6 +18,8 @@ import { BatchAccessMapJobType } from '../services/transitRouting/BatchAccessibi
 import { JobDataType, JobStatus } from 'transition-common/lib/services/jobs/Job';
 import Users from 'chaire-lib-backend/lib/services/users/users';
 import TrError from 'chaire-lib-common/lib/utils/TrError';
+import { TraclusDLJobType } from '../services/traclusDL/traclusDLJob';
+import { traclusDLCalculationRoute } from '../services/traclusDL/TraclusDLRunner';
 
 function newProgressEmitter(task: ExecutableJob<JobDataType>) {
     const eventEmitter = new EventEmitter();
@@ -143,6 +145,23 @@ const wrapBatchAccessMap = async (task: ExecutableJob<BatchAccessMapJobType>): P
     return result.completed;
 };
 
+const wrapTraclusDL = async (task: ExecutableJob<TraclusDLJobType>): Promise<boolean> => {
+    if (!task.hasInputFile()) {
+        throw new TrError('Invalid input file', 'TRJOB0004', 'transit:transitRouting:errors:InvalidInputFile');
+    }
+
+    const result = await traclusDLCalculationRoute(task, {
+        progressEmitter: newProgressEmitter(task),
+        isCancelled: getTaskCancelledFct(task)
+    });
+
+    await task.refresh();
+    task.attributes.data.results = result;
+
+    task.attributes.data.results = { completed: result.completed } as any; // shape this against your real TraclusDLCalculationResult
+    return result.completed;
+};
+
 // Exported for unit tests
 export const wrapTaskExecution = async (id: number) => {
     // Load task from database and execute only if it is pending, or resume tasks in progress
@@ -175,6 +194,9 @@ export const wrapTaskExecution = async (id: number) => {
             break;
         case 'batchAccessMap':
             taskResultStatus = await wrapBatchAccessMap(task as ExecutableJob<BatchAccessMapJobType>);
+            break;
+        case 'traclusDL':
+            taskResultStatus = await wrapTraclusDL(task as ExecutableJob<TraclusDLJobType>);
             break;
         default:
             console.log(`Unknown task ${task.attributes.name}`);

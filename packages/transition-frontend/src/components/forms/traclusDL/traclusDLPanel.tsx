@@ -9,12 +9,13 @@ import { withTranslation, WithTranslation } from 'react-i18next';
 
 import TraclusDLOdDemandFromCsv from 'transition-common/lib/services/traclusDL/TraclusDLOdDemandFromCsv';
 import GenericCsvImportAndMappingForm from '../csv/GenericCsvImportAndMappingForm';
-import { runTraclusDLTest } from '../../../services/traclusDL/TraclusDLUtils';
+import { TraclusDLUtils } from '../../../services/traclusDL/TraclusDLUtils';
+import { TraclusDLInputParameters } from 'transition-common/lib/services/traclusDL/type';
 
 // export interface TraclusDLPanelProps {}
 
 const TraclusDLPanel: React.FunctionComponent<WithTranslation> = (props) => {
-    const [, setNextEnabled] = React.useState(false);
+    const [next, setNextEnabled] = React.useState(false);
     const [result, setResult] = React.useState<string | null>(null);
     const [demand, setDemand] = React.useState<TraclusDLOdDemandFromCsv>(new TraclusDLOdDemandFromCsv());
 
@@ -33,12 +34,9 @@ const TraclusDLPanel: React.FunctionComponent<WithTranslation> = (props) => {
     };
 
     const onStartCalculation = async () => {
-        try {
-            const result = await runTraclusDLTest('hello world');
-            setResult(result);
-        } catch (error) {
-            setResult(error as string);
-        }
+        const parameters: TraclusDLInputParameters = { minDensity: 100 };
+        const result = await TraclusDLUtils.runCalculation(demand, parameters);
+        setResult(`Calculation completed: ${result.completed} + ${result.textTest}`);
     };
 
     return (
@@ -54,7 +52,7 @@ const TraclusDLPanel: React.FunctionComponent<WithTranslation> = (props) => {
                     importFileName="traclusDL.csv"
                 />
             </React.Fragment>
-            <button onClick={onStartCalculation}> Run TraClus_DL </button>
+            {true && <button onClick={onStartCalculation}> Run TraClus_DL </button>}
             {result && <p>{result}</p>}
         </div>
     );
