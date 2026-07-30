@@ -7,11 +7,11 @@
 
 import { TraclusDLCalculationResult } from 'transition-common/lib/services/traclusDL/type';
 import { ExecutableJob } from '../executableJob/ExecutableJob';
-import { TraclusDLJobType } from './traclusDLJob';
+import { TraclusDLJobType } from './TraclusDLJob';
 import { EventEmitter } from 'events';
-import { readFile } from 'fs/promises';
+import { runRustImplOnce } from './TraclusDLProcess';
 
-export const traclusDLCalculationRoute = async (
+export const traclusDLCalculate = async (
     job: ExecutableJob<TraclusDLJobType>,
     options: {
         progressEmitter: EventEmitter;
@@ -37,13 +37,16 @@ class TraclusDLRunner {
     }
 
     run = async (): Promise<TraclusDLCalculationResult> => {
-        console.log('RUNNN');
         try {
             // TODO (LEO) : Implement the actual calculation here
             const filePath = this.job.getFilePath('input');
-
-            const textFileContent = await this.job.getReadStream('input');
-            console.log('Input file content:', textFileContent.read());
+            const mapping = this.job.attributes.data.parameters.demandAttributes.fileAndMapping.fieldMappings;
+            const mapping2 = this.job.attributes.data.parameters.demandAttributes.csvFields;
+            const type = this.job.attributes.data.parameters.demandAttributes.type;
+            console.log('TraClus-DL calculation: filePath', filePath);
+            console.log('TraClus-DL calculation: mapping', mapping);
+            console.log('TraClus-DL calculation: mapping2', mapping2);
+            console.log('TraClus-DL calculation: type', type);
 
             const { stdout, stderr } = await runRustImplOnce({
                 filePath,
@@ -60,7 +63,8 @@ class TraclusDLRunner {
             console.log(`TraClus-DL stdout: ${stdout}`);
             return {
                 completed: true,
-                textTest: stdout.trim()
+                percentComplete: 100,
+                consoleOutput: stdout.trim()
             };
         } catch (error) {
             console.error('Error running TraClus-DL calculation:', error);
@@ -68,50 +72,5 @@ class TraclusDLRunner {
         }
     };
 }
-
-// TODO (LEO) : Move to a process class
-import { execFile } from 'child_process';
-import { promisify } from 'util';
-import path from 'path';
-import config from 'chaire-lib-backend/lib/config/server.config';
-
-const execFileAsync = promisify(execFile);
-
-// Same convention discussed earlier for OSRM/trRouting: binaries live under
-// runtime/, not inside the source tree, configurable via env var.
-const RUST_IMPL_DIR = path.join(config.projectDirectory, 'traclusDL');
-
-export type TraclusDLProcessArgs = {
-    filePath: string;
-    maxDist: string;
-    minDensity: string;
-    maxAngle: string;
-    segSize: string;
-    mode?: string; // 'serial' | 'parallel', matching the python arg
-};
-
-export const runRustImplOnce = async (args: TraclusDLProcessArgs): Promise<{ stdout: string; stderr: string }> => {
-    const exe = path.join(RUST_IMPL_DIR, 'traclusdl_cli');
-
-    const cmdArgs = [
-        '--file',
-        args.filePath,
-        '--max_dist',
-        args.maxDist,
-        '--min_density',
-        args.minDensity,
-        '--max_angle',
-        args.maxAngle,
-        '--segment_size',
-        args.segSize,
-        '--mode',
-        args.mode || 'serial',
-        '--interface',
-        'performance'
-    ];
-
-    const { stdout, stderr } = await execFileAsync(exe, cmdArgs);
-    return { stdout, stderr };
-};
 
 export default { runRustImplOnce };

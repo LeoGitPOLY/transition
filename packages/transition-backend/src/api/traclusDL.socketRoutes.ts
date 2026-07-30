@@ -15,7 +15,7 @@ import {
 } from 'transition-common/lib/services/traclusDL/type';
 import { ExecutableJobUtils } from '../services/executableJob/ExecutableJobUtils';
 import { fileKey } from 'transition-common/lib/services/jobs/Job';
-import { TraclusDLJobType } from '../services/traclusDL/traclusDLJob';
+import { TraclusDLJobType } from '../services/traclusDL/TraclusDLJob';
 import { ExecutableJob } from '../services/executableJob/ExecutableJob';
 
 export default function (socket: EventEmitter, userId: number) {
@@ -47,7 +47,8 @@ export default function (socket: EventEmitter, userId: number) {
                         },
                         results: {
                             completed: false,
-                            textTest: ''
+                            percentComplete: 0,
+                            consoleOutput: ''
                         }
                     },
                     inputFiles

@@ -8,18 +8,24 @@ import { CsvFileAndMapping } from '../csv';
  */
 
 export type TraclusDLInputParameters = {
+    maxAngle: number;
     minDensity: number;
+    maxDistance: number;
+    segSize: number;
+    isParallel: boolean;
     // TODO (LEO) : add later the other parameters
 };
 
 export type TraclusDLCalculationResult = {
     completed: boolean;
-    textTest: string;
+    percentComplete: number;
+    consoleOutput: string;
+    // corridorGeoson: GeoJSON.FeatureCollection<GeoJSON.Geometry>;
+    // segmentsGeojson: GeoJSON.FeatureCollection<GeoJSON.Geometry>;
     // TODO (LEO) : add later the other parameters
 };
 
 export type TraclusDLOdDemandFromCsvAttributes = {
-    projection: string;
     id: string;
     weight: string;
     xOrigin: string;

@@ -18,8 +18,8 @@ import { BatchAccessMapJobType } from '../services/transitRouting/BatchAccessibi
 import { JobDataType, JobStatus } from 'transition-common/lib/services/jobs/Job';
 import Users from 'chaire-lib-backend/lib/services/users/users';
 import TrError from 'chaire-lib-common/lib/utils/TrError';
-import { TraclusDLJobType } from '../services/traclusDL/traclusDLJob';
-import { traclusDLCalculationRoute } from '../services/traclusDL/TraclusDLRunner';
+import { TraclusDLJobType } from '../services/traclusDL/TraclusDLJob';
+import { traclusDLCalculate } from '../services/traclusDL/TraclusDLRunner';
 
 function newProgressEmitter(task: ExecutableJob<JobDataType>) {
     const eventEmitter = new EventEmitter();
@@ -150,7 +150,7 @@ const wrapTraclusDL = async (task: ExecutableJob<TraclusDLJobType>): Promise<boo
         throw new TrError('Invalid input file', 'TRJOB0004', 'transit:transitRouting:errors:InvalidInputFile');
     }
 
-    const result = await traclusDLCalculationRoute(task, {
+    const result = await traclusDLCalculate(task, {
         progressEmitter: newProgressEmitter(task),
         isCancelled: getTaskCancelledFct(task)
     });
@@ -158,7 +158,6 @@ const wrapTraclusDL = async (task: ExecutableJob<TraclusDLJobType>): Promise<boo
     await task.refresh();
     task.attributes.data.results = result;
 
-    task.attributes.data.results = { completed: result.completed } as any; // shape this against your real TraclusDLCalculationResult
     return result.completed;
 };
 
@@ -189,18 +188,18 @@ export const wrapTaskExecution = async (id: number) => {
         await task.save(taskListener);
         let taskResultStatus = true;
         switch (task.attributes.name) {
-        case 'batchRoute':
-            taskResultStatus = await wrapBatchRoute(task as ExecutableJob<BatchRouteJobType>);
-            break;
-        case 'batchAccessMap':
-            taskResultStatus = await wrapBatchAccessMap(task as ExecutableJob<BatchAccessMapJobType>);
-            break;
-        case 'traclusDL':
-            taskResultStatus = await wrapTraclusDL(task as ExecutableJob<TraclusDLJobType>);
-            break;
-        default:
-            console.log(`Unknown task ${task.attributes.name}`);
-            taskResultStatus = false;
+            case 'batchRoute':
+                taskResultStatus = await wrapBatchRoute(task as ExecutableJob<BatchRouteJobType>);
+                break;
+            case 'batchAccessMap':
+                taskResultStatus = await wrapBatchAccessMap(task as ExecutableJob<BatchAccessMapJobType>);
+                break;
+            case 'traclusDL':
+                taskResultStatus = await wrapTraclusDL(task as ExecutableJob<TraclusDLJobType>);
+                break;
+            default:
+                console.log(`Unknown task ${task.attributes.name}`);
+                taskResultStatus = false;
         }
         if (taskResultStatus) {
             task.setCompleted();

@@ -9,7 +9,7 @@ import { MappingTraclusDLOdDemandFromCsvAttributes, TraclusDLOdDemandFromCsvAttr
 
 const demandFieldDescriptors: CsvFieldMappingDescriptor[] = [
     {
-        key: 'id',
+        key: 'name',
         i18nLabel: 'transit:traclusDL:IdField',
         type: 'single',
         required: false
@@ -23,28 +23,28 @@ const demandFieldDescriptors: CsvFieldMappingDescriptor[] = [
     },
     // TODO (LEO): X and Y could be Projected Coordinates (another type : not latLon)
     {
-        key: 'xOrigin',
+        key: 'x_origin',
         i18nLabel: 'transit:traclusDL:XOriginField',
         i18nErrorLabel: 'transit:traclusDL:error:XOriginFieldIsMissing',
         type: 'single',
         required: true
     },
     {
-        key: 'yOrigin',
+        key: 'y_origin',
         i18nLabel: 'transit:traclusDL:YOriginField',
         i18nErrorLabel: 'transit:traclusDL:error:YOriginFieldIsMissing',
         type: 'single',
         required: true
     },
     {
-        key: 'xDestination',
+        key: 'x_dest',
         i18nLabel: 'transit:traclusDL:XDestinationField',
         i18nErrorLabel: 'transit:traclusDL:error:XDestinationFieldIsMissing',
         type: 'single',
         required: true
     },
     {
-        key: 'yDestination',
+        key: 'y_dest',
         i18nLabel: 'transit:traclusDL:YDestinationField',
         i18nErrorLabel: 'transit:traclusDL:error:YDestinationFieldIsMissing',
         type: 'single',
