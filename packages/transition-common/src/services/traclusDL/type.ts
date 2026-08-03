@@ -16,6 +16,14 @@ export type TraclusDLInputParameters = {
     // TODO (LEO) : add later the other parameters
 };
 
+export const defaultParameters: TraclusDLInputParameters = {
+    maxAngle: 5,
+    minDensity: 20,
+    maxDistance: 600,
+    segSize: 2000,
+    isParallel: true
+};
+
 export type TraclusDLCalculationResult = {
     completed: boolean;
     percentComplete: number;
@@ -23,6 +31,12 @@ export type TraclusDLCalculationResult = {
     // corridorGeoson: GeoJSON.FeatureCollection<GeoJSON.Geometry>;
     // segmentsGeojson: GeoJSON.FeatureCollection<GeoJSON.Geometry>;
     // TODO (LEO) : add later the other parameters
+};
+
+export const defaultResult: TraclusDLCalculationResult = {
+    completed: false,
+    percentComplete: 0,
+    consoleOutput: ''
 };
 
 export type TraclusDLOdDemandFromCsvAttributes = {

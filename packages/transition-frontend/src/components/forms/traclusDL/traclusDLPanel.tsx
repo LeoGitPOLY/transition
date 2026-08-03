@@ -4,114 +4,102 @@
  * This file is licensed under the MIT License.
  * License text available at https://opensource.org/licenses/MIT
  */
+
 import React from 'react';
 import { withTranslation, WithTranslation } from 'react-i18next';
-import TraclusDLOdDemandFromCsv from 'transition-common/lib/services/traclusDL/TraclusDLOdDemandFromCsv';
-import GenericCsvImportAndMappingForm from '../csv/GenericCsvImportAndMappingForm';
-import TraclusDLCalculationPanel from './traclusDLCalculationPanel';
-import { TraclusDLInputParameters, TraclusDLCalculationResult } from 'transition-common/lib/services/traclusDL/type';
 
-type Calculation = {
+import TraclusDLForm from './traclusDLForm';
+import TraclusDLCalculationPanel from './traclusDLCalculationPanel';
+
+import {
+    TraclusDLInputParameters,
+    TraclusDLCalculationResult,
+    defaultParameters,
+    defaultResult
+} from 'transition-common/lib/services/traclusDL/type';
+
+export type Calculation = {
     id: number;
     parameters: TraclusDLInputParameters;
     result: TraclusDLCalculationResult;
 };
 
-const defaultParameters: TraclusDLInputParameters = {
-    maxAngle: 5,
-    minDensity: 250,
-    maxDistance: 500,
-    segSize: 100,
-    isParallel: true
-};
-
-const defaultResult: TraclusDLCalculationResult = {
-    completed: false,
-    percentComplete: 0,
-    consoleOutput: ''
-};
-
-const TraclusDLPanel: React.FunctionComponent<WithTranslation> = (props) => {
-    const [nextEnabled, setNextEnabled] = React.useState(false);
-    const [demand, setDemand] = React.useState<TraclusDLOdDemandFromCsv>(new TraclusDLOdDemandFromCsv());
-    const [isFileConfirmed, setIsFileConfirmed] = React.useState(false);
+const TraclusDLPanel: React.FunctionComponent<WithTranslation> = () => {
     const [calculations, setCalculations] = React.useState<Calculation[]>([]);
-    const [selectedId, setSelectedId] = React.useState<number | undefined>(undefined);
-    const nextIdRef = React.useRef(1);
+    const [modifiedCalculation, setModifiedCalculation] = React.useState<Calculation | undefined>(undefined);
 
-    const onDemandStepComplete = (demand: TraclusDLOdDemandFromCsv, isReadyAndValid: boolean) => {
-        setDemand(demand);
-        setNextEnabled(demand.isValid() && isReadyAndValid);
-    };
+    const nextId = React.useRef(0);
 
-    // TODO (LEO) : replace with the actual file name/line count once available on TraclusDLOdDemandFromCsv
-    const csvFileName = 'traclusDL.csv';
-    const csvLineCount = 0;
-
-    const onChangeInputFile = () => {
-        setIsFileConfirmed(false);
-        setCalculations([]);
-        setSelectedId(undefined);
-    };
-
-    const onNewCalculation = () => {
-        const id = nextIdRef.current++;
-        const newCalculation: Calculation = {
-            id,
+    const onNewModifiedCalculation = () => {
+        const calculation: Calculation = {
+            id: nextId.current,
             parameters: { ...defaultParameters },
             result: { ...defaultResult }
         };
-        setCalculations([...calculations, newCalculation]);
-        setSelectedId(id);
+
+        setModifiedCalculation(calculation);
     };
 
-    const onUpdateParameters = (id: number, parameters: TraclusDLInputParameters) => {
-        setCalculations(calculations.map((calc) => (calc.id === id ? { ...calc, parameters } : calc)));
+    const addCalculation = (calculation?: Calculation) => {
+        if (calculation && !calculations.find((calc) => calc.id === calculation.id)) {
+            setCalculations((prev) => [...prev, calculation]);
+            nextId.current++;
+        }
     };
 
-    const onCalculate = (id: number) => {
-        // TODO (LEO) : call TraclusDLRunner instead of printing
-        console.log('Running calculation', id, calculations.find((calc) => calc.id === id)?.parameters);
+    const updateParameters = (parameters: TraclusDLInputParameters) => {
+        if (!modifiedCalculation) {
+            return;
+        }
+
+        setCalculations((prev) =>
+            prev.map((calc) =>
+                calc.id === modifiedCalculation.id
+                    ? { ...calc, parameters }
+                    : calc
+            )
+        );
+    };
+
+    const onBackToForm = (parameters?: TraclusDLInputParameters) => {
+        if (parameters) {
+            addCalculation(modifiedCalculation);
+            updateParameters(parameters);
+        }
+
+        setModifiedCalculation(undefined);
     };
 
     return (
         <div id="tr__traclus-dl-panel" className="tr__traclus-dl-panel tr__panel">
-            <h2>Traclus DL Panel</h2>
-            {!isFileConfirmed && (
-                <React.Fragment>
-                    <h4>{props.t('transit:batchCalculation:ConfigureDemand')}</h4>
-                    <GenericCsvImportAndMappingForm
-                        csvFieldMapper={demand}
-                        onUpdate={onDemandStepComplete}
-                        importFileName="traclusDL.csv"
-                    />
-                    <button disabled={!nextEnabled} onClick={() => setIsFileConfirmed(true)}>
-                        Next
-                    </button>
-                </React.Fragment>
+            <h3>
+                <img src="/dist/images/icons/interface/traclus_dl_black.svg" className="_icon" alt="Traclus DL Panel" />{' '}
+                Traclus DL Panel
+            </h3>
+
+            {/* Use the display style to keep the form state*/}
+            <div style={{ display: modifiedCalculation ? 'none' : 'block' }}>
+                <TraclusDLForm
+                    calculations={calculations}
+                    onNewCalculation={onNewModifiedCalculation}
+                />
+            </div>
+
+
+            {modifiedCalculation && (
+                <TraclusDLCalculationPanel
+                    parameters={modifiedCalculation.parameters}
+                    onBack={onBackToForm}
+                />
             )}
-            {isFileConfirmed && (
-                <React.Fragment>
-                    <div className="tr__traclus-dl-header">
-                        <span>
-                            {csvFileName} ({csvLineCount} lines)
-                        </span>
-                        <button onClick={onChangeInputFile}>Change input file</button>
-                    </div>
-                    {calculations.map((calc) => (
-                        <TraclusDLCalculationPanel
-                            key={calc.id}
-                            parameters={calc.parameters}
-                            result={calc.result}
-                            isSelected={calc.id === selectedId}
-                            onSelect={() => setSelectedId(calc.id)}
-                            onUpdateParameters={(parameters) => onUpdateParameters(calc.id, parameters)}
-                            onCalculate={() => onCalculate(calc.id)}
-                        />
-                    ))}
-                    <button onClick={onNewCalculation}>+ Nouveau</button>
-                </React.Fragment>
-            )}
+
+
+            {/* TODO (LEO) : the selected calculation outputs */}
+            {/* <div className="tr__traclus-dl-outputs">
+                <label>Outputs</label>
+
+                <textarea readOnly value={props.result.consoleOutput} />
+            </div> */}
         </div>
     );
 };
