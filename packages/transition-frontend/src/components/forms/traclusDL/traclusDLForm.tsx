@@ -13,33 +13,76 @@ import Button from 'chaire-lib-frontend/lib/components/input/Button';
 import { Calculation } from './traclusDLPanel';
 import Collapsible from 'react-collapsible';
 import ExecutableJobComponent from '../../parts/executableJob/ExecutableJobComponent';
-import { defaultParameters, TraclusDLInputParameters } from 'transition-common/lib/services/traclusDL/type';
+import { MappingTraclusDLOdDemandFromCsvAttributes } from 'transition-common/lib/services/traclusDL/type';
 import { TraclusDLUtils } from '../../../services/traclusDL/TraclusDLUtils';
+import FormErrors from 'chaire-lib-frontend/lib/components/pageParts/FormErrors';
+import EventManager from 'chaire-lib-common/lib/services/events/EventManager';
+import { MapUpdateLayerEventType } from 'chaire-lib-frontend/lib/services/map/events/MapEventsCallbacks';
+import serviceLocator from 'chaire-lib-common/lib/utils/ServiceLocator';
+import { TraclusDLConstants } from 'transition-common/lib/api/traclusDL';
+import { o } from 'react-router/dist/development/index-react-server-client-BS5F89FR';
 
 export interface TraclusDLFormProps extends WithTranslation {
     calculations: Calculation[];
-
+    demand: TraclusDLOdDemandFromCsv;
+    setDemand: (demand: TraclusDLOdDemandFromCsv) => void;
     onNewCalculation: () => void;
 }
 
+const mockMapping: MappingTraclusDLOdDemandFromCsvAttributes = {
+    type: 'csv',
+    csvFields: ['name', 'weight', 'x_start', 'y_start', 'x_end', 'y_end'],
+    fileAndMapping: {
+        csvFile: {
+            location: 'upload',
+            filename: 'in_order_header_name.txt',
+            uploadFilename: 'traclusDL.csv'
+        },
+        fieldMappings: {
+            projection: '2950',
+            id: 'name',
+            weight: 'weight',
+            originLat: 'y_start',
+            originLon: 'x_start',
+            destinationLat: 'y_end',
+            destinationLon: 'x_end'
+        }
+    }
+};
+
 const TraclusDLForm: React.FunctionComponent<TraclusDLFormProps> = (props) => {
-    const [demand, setDemand] = React.useState<TraclusDLOdDemandFromCsv>(new TraclusDLOdDemandFromCsv());
+    const [importErrors, setImportErrors] = React.useState<string[]>([]);
     const [isImportDone, setImportDone] = React.useState(false);
 
     const onDemandStepComplete = (updatedDemand: TraclusDLOdDemandFromCsv, isReadyAndValid: boolean) => {
-        setDemand(updatedDemand);
-        setImportDone(updatedDemand.isValid() && isReadyAndValid);
+        const isValid = updatedDemand.isValid() && isReadyAndValid;
+
+        props.setDemand(updatedDemand);
+        setImportDone(isValid);
+        setImportErrors([]);
+
+        if (isValid) {
+            getGeoJsonFromCsvFile(updatedDemand);
+        }
     };
 
     const onChangeInputFile = () => {
-        setDemand(new TraclusDLOdDemandFromCsv());
+        props.setDemand(new TraclusDLOdDemandFromCsv());
         setImportDone(false);
     };
 
-    const onStartCalculation = async () => {
-        const parameters: TraclusDLInputParameters = defaultParameters;
-        const result = await TraclusDLUtils.runCalculation(demand, parameters);
-        console.log(`Calculation completed: ${result.completed} + ${result.consoleOutput}`);
+    const getGeoJsonFromCsvFile = async (demand: TraclusDLOdDemandFromCsv) => {
+        await TraclusDLUtils.getGeoJsonFromCsvFile(demand)
+            .then((odLines) => {
+                (serviceLocator.eventManager as EventManager).emitEvent<MapUpdateLayerEventType>('map.updateLayer', {
+                    layerName: 'traclusDlInputOdLines',
+                    data: odLines
+                });
+            })
+            .catch((error) => {
+                onChangeInputFile();
+                setImportErrors([error.message]);
+            });
     };
 
     // TODO (LEO) : props.t('Something')
@@ -49,33 +92,37 @@ const TraclusDLForm: React.FunctionComponent<TraclusDLFormProps> = (props) => {
                 <h4>{'Importation du fichier OD en entrée pour l\'outil Traclus DL.'}</h4>
                 <fieldset disabled={isImportDone}>
                     <GenericCsvImportAndMappingForm
-                        csvFieldMapper={demand}
+                        csvFieldMapper={props.demand}
                         onUpdate={onDemandStepComplete}
-                        importFileName="traclusDL.csv"
+                        importFileName={TraclusDLConstants.CSV_FILE_NAME}
                     />
                 </fieldset>
-
+                <FormErrors errors={importErrors} />
                 {isImportDone && (
                     <div className="tr__form-buttons-container">
                         <Button label="Change input file" color="red" onClick={onChangeInputFile} />
                     </div>
                 )}
+                {/** TODO (LEO) : REMOVE*/}
+                <div className="tr__form-buttons-container">
+                    <Button
+                        label="Get GeoJSON"
+                        color="green"
+                        onClick={() => {
+                            const mockDemand: TraclusDLOdDemandFromCsv = new TraclusDLOdDemandFromCsv(mockMapping);
+                            onDemandStepComplete(mockDemand, true);
+                        }}
+                    />
+                </div>
             </Collapsible>
 
             <Collapsible trigger={'Traclus DL Calculations'} open={true} transitionTime={100}>
                 {isImportDone && (
                     <React.Fragment>
-                        <h4>TABLE OF ALL CALCULATIONS</h4>
-                        <h4>{props.calculations.length} calculations</h4>
-                        <ExecutableJobComponent
-                            customActions={[]}
-                            defaultPageSize={10}
-                            jobType="traclusDL"
-                        />
                         <div className="tr__form-buttons-container">
-                            <Button label="+ Nouveau" color="blue" onClick={props.onNewCalculation} />
-                            <Button label="RUN" color="green" onClick={() => onStartCalculation()} />
+                            <Button label="+ Nouvelle Calculation" color="blue" onClick={props.onNewCalculation} />
                         </div>
+                        <ExecutableJobComponent customActions={[]} defaultPageSize={10} jobType="traclusDL" />
                     </React.Fragment>
                 )}
             </Collapsible>

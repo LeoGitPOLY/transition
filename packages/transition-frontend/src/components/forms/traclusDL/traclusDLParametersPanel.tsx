@@ -16,7 +16,7 @@ export interface TraclusDLCalculationPanelProps extends WithTranslation {
     onBack: (parameters?: TraclusDLInputParameters) => void;
 }
 
-const TraclusDLCalculationPanel: React.FunctionComponent<TraclusDLCalculationPanelProps> = (props) => {
+const TraclusDParametersPanel: React.FunctionComponent<TraclusDLCalculationPanelProps> = (props) => {
     const [parameters, setParameters] = React.useState<TraclusDLInputParameters>(props.parameters);
 
     // TODO (LEO) : change when a form library is used to handle the input changes and validation
@@ -38,7 +38,7 @@ const TraclusDLCalculationPanel: React.FunctionComponent<TraclusDLCalculationPan
     // TODO (LEO) : add a form library to handle the input changes and validation
     // <InputWrapper <InputStringFormatted>
     return (
-        <div className="tr__traclus-dl-calculation-panel">
+        <div className="tr__traclus-dl-parameters-panel">
             <label>
                 Max angle
                 <input type="number" value={parameters.maxAngle} onChange={onFieldChange('maxAngle')} />
@@ -61,19 +61,15 @@ const TraclusDLCalculationPanel: React.FunctionComponent<TraclusDLCalculationPan
 
             <label>
                 Parallel computation
-                <input
-                    type="checkbox"
-                    checked={parameters.isParallel}
-                    onChange={onFieldChange('isParallel')}
-                />
+                <input type="checkbox" checked={parameters.isParallel} onChange={onFieldChange('isParallel')} />
             </label>
 
             <div className="tr__form-buttons-container">
-                <Button label="Back" color="red" onClick={() => props.onBack(undefined)} />
-                <Button label="Save" color="green" onClick={() => props.onBack(parameters)} />
+                <Button label="Cancel" color="red" onClick={() => props.onBack(undefined)} />
+                <Button label="RUN" color="green" onClick={() => props.onBack(parameters)} />
             </div>
         </div>
     );
 };
 
-export default withTranslation(['transit', 'main'])(TraclusDLCalculationPanel);
+export default withTranslation(['transit', 'main'])(TraclusDParametersPanel);

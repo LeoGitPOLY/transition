@@ -9,6 +9,7 @@ import { EventEmitter } from 'events';
 import * as Status from 'chaire-lib-common/lib/utils/Status';
 import { TraclusDLConstants } from 'transition-common/lib/api/traclusDL';
 import {
+    defaultResult,
     MappingTraclusDLOdDemandFromCsvAttributes,
     TraclusDLCalculationResult,
     TraclusDLInputParameters
@@ -17,14 +18,19 @@ import { ExecutableJobUtils } from '../services/executableJob/ExecutableJobUtils
 import { fileKey } from 'transition-common/lib/services/jobs/Job';
 import { TraclusDLJobType } from '../services/traclusDL/TraclusDLJob';
 import { ExecutableJob } from '../services/executableJob/ExecutableJob';
+import { getGeoJsonFromCsvFile } from '../services/traclusDL/traclusDLUtils';
+import { directoryManager } from 'chaire-lib-backend/lib/utils/filesystem/directoryManager';
 
 export default function (socket: EventEmitter, userId: number) {
+    const absoluteImportDir = `${directoryManager.userDataDirectory}/${userId}/imports`;
+
+    // Run a Traclus-DL calculation: return the job ID of the calculation job created
     socket.on(
         TraclusDLConstants.RUN_CALCULATION,
         async (
             csvFileMapping: MappingTraclusDLOdDemandFromCsvAttributes,
             parameters: TraclusDLInputParameters,
-            callback: (status: Status.Status<TraclusDLCalculationResult>) => void
+            callback: (status: Status.Status<number>) => void
         ) => {
             try {
                 socket.emit('progress', { name: 'TraclusDL', progress: null });
@@ -45,11 +51,7 @@ export default function (socket: EventEmitter, userId: number) {
                             demandAttributes: csvFileMapping,
                             inputParameters: parameters
                         },
-                        results: {
-                            completed: false,
-                            percentComplete: 0,
-                            consoleOutput: ''
-                        }
+                        results: { ...defaultResult }
                     },
                     inputFiles
                 });
@@ -57,9 +59,25 @@ export default function (socket: EventEmitter, userId: number) {
                 await job.enqueue();
                 await job.refresh();
 
-                callback(Status.createOk(job.attributes.data.results));
+                callback(Status.createOk(job.attributes.id));
             } catch (error) {
-                callback(Status.createError(error instanceof Error ? error.message : 'Error running TraClus-DL'));
+                callback(Status.createError(error instanceof Error ? error.message : 'ServerError running TraClus-DL'));
+            }
+        }
+    );
+
+    // Get GeoJSON from a CSV input file: return a GeoJSON FeatureCollection of Linestrings
+    socket.on(
+        TraclusDLConstants.GET_GEOJSON_FROM_CSV_FILE,
+        async (
+            csvFileMapping: MappingTraclusDLOdDemandFromCsvAttributes,
+            callback: (status: Status.Status<GeoJSON.FeatureCollection>) => void
+        ) => {
+            try {
+                const geoJson = await getGeoJsonFromCsvFile(absoluteImportDir, csvFileMapping);
+                callback(Status.createOk(geoJson));
+            } catch (error) {
+                callback(Status.createError(error instanceof Error ? error.message : 'ServerError getting GeoJSON'));
             }
         }
     );

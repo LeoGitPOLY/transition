@@ -1,5 +1,4 @@
 import { CsvFileAndMapping } from '../csv';
-
 /*
  * Copyright 2026, Polytechnique Montreal and contributors
  *
@@ -40,12 +39,13 @@ export const defaultResult: TraclusDLCalculationResult = {
 };
 
 export type TraclusDLOdDemandFromCsvAttributes = {
+    projection: string;
     id: string;
     weight: string;
-    xOrigin: string;
-    yOrigin: string;
-    xDestination: string;
-    yDestination: string;
+    originLat: string;
+    originLon: string;
+    destinationLat: string;
+    destinationLon: string;
 };
 
 export type MappingTraclusDLOdDemandFromCsvAttributes = CsvFileAndMapping<TraclusDLOdDemandFromCsvAttributes>;

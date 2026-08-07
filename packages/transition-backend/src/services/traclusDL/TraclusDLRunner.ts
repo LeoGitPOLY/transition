@@ -18,8 +18,6 @@ export const traclusDLCalculate = async (
         isCancelled: () => boolean;
     }
 ): Promise<TraclusDLCalculationResult> => {
-    // RUN CODE HERE
-    console.log('Running TraClus-DL calculation (!)');
     const runner = new TraclusDLRunner(job, options);
     return await runner.run();
 };
@@ -38,29 +36,16 @@ class TraclusDLRunner {
 
     run = async (): Promise<TraclusDLCalculationResult> => {
         try {
-            // TODO (LEO) : Implement the actual calculation here
             const filePath = this.job.getFilePath('input');
-            const mapping = this.job.attributes.data.parameters.demandAttributes.fileAndMapping.fieldMappings;
-            const mapping2 = this.job.attributes.data.parameters.demandAttributes.csvFields;
-            const type = this.job.attributes.data.parameters.demandAttributes.type;
-            console.log('TraClus-DL calculation: filePath', filePath);
-            console.log('TraClus-DL calculation: mapping', mapping);
-            console.log('TraClus-DL calculation: mapping2', mapping2);
-            console.log('TraClus-DL calculation: type', type);
+            const parameters = this.job.attributes.data.parameters.inputParameters;
+            const fieldMappings = this.job.attributes.data.parameters.demandAttributes.fileAndMapping.fieldMappings;
 
-            const { stdout, stderr } = await runRustImplOnce({
-                filePath,
-                maxDist: '100',
-                minDensity: '5',
-                maxAngle: '10',
-                segSize: '10',
-                mode: 'serial'
-            });
+            const { stdout, stderr } = await runRustImplOnce(filePath, fieldMappings, parameters);
 
             if (stderr) {
-                console.error(`TraClus-DL stderr: ${stderr}`);
+                throw new Error(stderr);
             }
-            console.log(`TraClus-DL stdout: ${stdout}`);
+
             return {
                 completed: true,
                 percentComplete: 100,
@@ -72,5 +57,4 @@ class TraclusDLRunner {
         }
     };
 }
-
 export default { runRustImplOnce };

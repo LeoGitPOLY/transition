@@ -21,33 +21,18 @@ const demandFieldDescriptors: CsvFieldMappingDescriptor[] = [
         type: 'single',
         required: true
     },
-    // TODO (LEO): X and Y could be Projected Coordinates (another type : not latLon)
     {
-        key: 'x_origin',
-        i18nLabel: 'transit:traclusDL:XOriginField',
-        i18nErrorLabel: 'transit:traclusDL:error:XOriginFieldIsMissing',
-        type: 'single',
+        key: 'origin',
+        type: 'latLon',
+        i18nLabel: 'transit:transitRouting:OriginFieldMapping',
+        i18nErrorLabel: 'transit:transitRouting:errors:OriginIsMissing',
         required: true
     },
     {
-        key: 'y_origin',
-        i18nLabel: 'transit:traclusDL:YOriginField',
-        i18nErrorLabel: 'transit:traclusDL:error:YOriginFieldIsMissing',
-        type: 'single',
-        required: true
-    },
-    {
-        key: 'x_dest',
-        i18nLabel: 'transit:traclusDL:XDestinationField',
-        i18nErrorLabel: 'transit:traclusDL:error:XDestinationFieldIsMissing',
-        type: 'single',
-        required: true
-    },
-    {
-        key: 'y_dest',
-        i18nLabel: 'transit:traclusDL:YDestinationField',
-        i18nErrorLabel: 'transit:traclusDL:error:YDestinationFieldIsMissing',
-        type: 'single',
+        key: 'destination',
+        type: 'latLon',
+        i18nLabel: 'transit:transitRouting:DestinationFieldMapping',
+        i18nErrorLabel: 'transit:transitRouting:errors:DestinationIsMissing',
         required: true
     }
 ];

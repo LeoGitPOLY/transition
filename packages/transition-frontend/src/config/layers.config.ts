@@ -49,6 +49,7 @@ export const sectionLayers = {
     ],
     accessibilityMap: ['accessibilityMapPolygons', 'accessibilityMapPolygonStrokes', 'accessibilityMapPoints'],
     accessibilityComparison: ['accessibilityMapPolygons', 'accessibilityMapPolygonStrokes', 'accessibilityMapPoints'],
+    traclusDL: ['traclusDlInputOdLines'],
     gtfsImport: [
         'transitNodesRoutingRadius',
         'transitStations',
@@ -818,6 +819,29 @@ const layersConfig = {
             'circle-stroke-color': {
                 property: 'station_color',
                 type: 'identity'
+            }
+        }
+    },
+
+    traclusDlInputOdLines: {
+        type: 'line',
+        layout: {
+            'line-join': 'round',
+            'line-cap': 'round'
+        },
+        paint: {
+            'line-color': {
+                property: 'rgb(176,57,0,1)',
+                type: 'identity'
+            },
+            'line-opacity': 0.8,
+            'line-width': {
+                base: 1,
+                stops: [
+                    [6, 10],
+                    [12, 20],
+                    [13, 30]
+                ]
             }
         }
     }
