@@ -5,6 +5,7 @@ import {
     TraclusDLInputParameters,
     TraclusDLOdDemandFromCsvAttributes
 } from 'transition-common/lib/services/traclusDL/type';
+import { TraclusDLConstants } from 'transition-common/lib/api/traclusDL';
 
 const execFileAsync = promisify(execFile);
 
@@ -15,7 +16,7 @@ export const runRustImplOnce = async (
     filePath: string,
     fieldMappings: TraclusDLOdDemandFromCsvAttributes,
     parameters: TraclusDLInputParameters
-): Promise<{ stdout: string; stderr: string }> => {
+): Promise<string> => {
     const exe = path.join(RUST_IMPL_DIR, 'traclusdl_cli');
     const computationMapping = getComputationMapping(fieldMappings);
     const mode = parameters.isParallel ? 'parallel-rayon' : 'serial';
@@ -23,6 +24,7 @@ export const runRustImplOnce = async (
     const cmdArgs: string[] = [
         '--file',
         filePath,
+        '--output', TraclusDLConstants.MODULE_NAME,
         '--max_dist',
         parameters.maxDistance.toString(),
         '--min_density',
@@ -31,14 +33,22 @@ export const runRustImplOnce = async (
         parameters.maxAngle.toString(),
         '--segment_size',
         parameters.segSize.toString(),
-        '--mode', mode,
-        '--map', computationMapping,
-        '--interface', 'performance'
+        '--mode',
+        mode,
+        '--map',
+        computationMapping,
+        '--interface',
+        'performance'
     ];
 
     const { stdout, stderr } = await execFileAsync(exe, cmdArgs);
-    return { stdout, stderr };
+
+    if (stderr) {
+        throw new Error(`Error running TraClus-DL Rust implementation: ${stderr}`);
+    }
+    return stdout;
 };
+
 
 // This is the exact name of fields traclusDl executable expects in the mapping file
 // It is used to override the fields of CsvFieldMappingDescriptor for computation

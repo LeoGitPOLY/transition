@@ -11,8 +11,11 @@ import { TraclusDLConstants } from 'transition-common/lib/api/traclusDL';
 import { TraclusDLOdDemandFromCsv } from 'transition-common/lib/services/traclusDL/TraclusDLOdDemandFromCsv';
 import {
     MappingTraclusDLOdDemandFromCsvAttributes,
+    TraclusDLCalculationResult,
     TraclusDLInputParameters
 } from 'transition-common/lib/services/traclusDL/type';
+import { ReturnedJobAttributes } from '../../components/parts/executableJob/ExecutableJobList';
+import { JobsConstants } from 'transition-common/lib/api/jobs';
 
 export class TraclusDLUtils {
     static async runCalculation(
@@ -50,6 +53,20 @@ export class TraclusDLUtils {
             );
         }
     }
+    static async getCalculationResultsByJobId(jobId: number): Promise<TraclusDLCalculationResult> {
+        try {
+            return await this._getBackendCalculationResultsByJobId(jobId);
+        } catch (error) {
+            if (TrError.isTrError(error)) {
+                throw error;
+            }
+            throw new TrError(
+                `Cannot get TraClus-DL results for job ${jobId}: ${error}`,
+                'TRACAL0006',
+                'transit:transitRouting:errors:TransitBatchRouteCannotBeCalculatedBecauseError'
+            );
+        }
+    }
 
     private static async _runBackEndCalculation(
         csvFileMapping: MappingTraclusDLOdDemandFromCsvAttributes,
@@ -83,6 +100,37 @@ export class TraclusDLUtils {
                         resolve(Status.unwrap(result));
                     } else {
                         reject(result.error);
+                    }
+                }
+            );
+        });
+    }
+
+    private static async _getBackendCalculationResultsByJobId(
+        jobId: number
+    ): Promise<TraclusDLCalculationResult> {
+        return new Promise((resolve, reject) => {
+            serviceLocator.socketEventManager.emit(
+                JobsConstants.LIST_JOBS,
+                { jobType: 'traclusDL', pageSize: 0 },
+                (response: Status.Status<{ jobs: ReturnedJobAttributes[]; totalCount: number }>) => {
+                    try {
+                        const { jobs } = Status.unwrap(response);
+                        if (!jobs) { throw new Error('No jobs found'); }
+
+                        const job = jobs.find((j) => j.id === jobId);
+                        if (!job) { throw new Error('Job not found'); }
+
+                        const jobStatus = job.status;
+                        if (jobStatus !== 'completed' && jobStatus !== 'failed') {
+                            throw new Error(`Job is not completed or failed, current status: ${jobStatus}`);
+                        }
+                        const results = job.data.results as TraclusDLCalculationResult;
+                        if (!results) { throw new Error('No results found for the job'); }
+
+                        resolve(results);
+                    } catch (error) {
+                        reject(error);
                     }
                 }
             );

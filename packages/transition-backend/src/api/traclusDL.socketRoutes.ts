@@ -11,14 +11,13 @@ import { TraclusDLConstants } from 'transition-common/lib/api/traclusDL';
 import {
     defaultResult,
     MappingTraclusDLOdDemandFromCsvAttributes,
-    TraclusDLCalculationResult,
     TraclusDLInputParameters
 } from 'transition-common/lib/services/traclusDL/type';
 import { ExecutableJobUtils } from '../services/executableJob/ExecutableJobUtils';
 import { fileKey } from 'transition-common/lib/services/jobs/Job';
 import { TraclusDLJobType } from '../services/traclusDL/TraclusDLJob';
 import { ExecutableJob } from '../services/executableJob/ExecutableJob';
-import { getGeoJsonFromCsvFile } from '../services/traclusDL/traclusDLUtils';
+import { getGeoJsonFromInputCsvFile } from '../services/traclusDL/traclusDLUtils';
 import { directoryManager } from 'chaire-lib-backend/lib/utils/filesystem/directoryManager';
 
 export default function (socket: EventEmitter, userId: number) {
@@ -74,7 +73,7 @@ export default function (socket: EventEmitter, userId: number) {
             callback: (status: Status.Status<GeoJSON.FeatureCollection>) => void
         ) => {
             try {
-                const geoJson = await getGeoJsonFromCsvFile(absoluteImportDir, csvFileMapping);
+                const geoJson = await getGeoJsonFromInputCsvFile(absoluteImportDir, csvFileMapping);
                 callback(Status.createOk(geoJson));
             } catch (error) {
                 callback(Status.createError(error instanceof Error ? error.message : 'ServerError getting GeoJSON'));

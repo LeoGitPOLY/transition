@@ -24,18 +24,19 @@ export const defaultParameters: TraclusDLInputParameters = {
 };
 
 export type TraclusDLCalculationResult = {
-    completed: boolean;
-    percentComplete: number;
     consoleOutput: string;
-    // corridorGeoson: GeoJSON.FeatureCollection<GeoJSON.Geometry>;
+    segmentOutputFilePath?: string;
+    corridorOutputFilePath?: string;
+    corridorGeoJson?: GeoJSON.FeatureCollection<GeoJSON.MultiLineString>;
+    completed: boolean;
     // segmentsGeojson: GeoJSON.FeatureCollection<GeoJSON.Geometry>;
     // TODO (LEO) : add later the other parameters
 };
 
 export const defaultResult: TraclusDLCalculationResult = {
-    completed: false,
-    percentComplete: 0,
-    consoleOutput: ''
+    consoleOutput: '',
+    completed: false
+
 };
 
 export type TraclusDLOdDemandFromCsvAttributes = {

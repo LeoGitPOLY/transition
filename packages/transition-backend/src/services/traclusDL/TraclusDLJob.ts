@@ -19,5 +19,5 @@ export type TraclusDLJobType = {
         };
         results: TraclusDLCalculationResult;
     };
-    files: { input: true };
+    files: { input: true, segments: true, corridors: true };
 };

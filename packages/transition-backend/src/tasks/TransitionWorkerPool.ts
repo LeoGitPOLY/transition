@@ -188,18 +188,18 @@ export const wrapTaskExecution = async (id: number) => {
         await task.save(taskListener);
         let taskResultStatus = true;
         switch (task.attributes.name) {
-        case 'batchRoute':
-            taskResultStatus = await wrapBatchRoute(task as ExecutableJob<BatchRouteJobType>);
-            break;
-        case 'batchAccessMap':
-            taskResultStatus = await wrapBatchAccessMap(task as ExecutableJob<BatchAccessMapJobType>);
-            break;
-        case 'traclusDL':
-            taskResultStatus = await wrapTraclusDL(task as ExecutableJob<TraclusDLJobType>);
-            break;
-        default:
-            console.log(`Unknown task ${task.attributes.name}`);
-            taskResultStatus = false;
+            case 'batchRoute':
+                taskResultStatus = await wrapBatchRoute(task as ExecutableJob<BatchRouteJobType>);
+                break;
+            case 'batchAccessMap':
+                taskResultStatus = await wrapBatchAccessMap(task as ExecutableJob<BatchAccessMapJobType>);
+                break;
+            case 'traclusDL':
+                taskResultStatus = await wrapTraclusDL(task as ExecutableJob<TraclusDLJobType>);
+                break;
+            default:
+                console.log(`Unknown task ${task.attributes.name}`);
+                taskResultStatus = false;
         }
         if (taskResultStatus) {
             task.setCompleted();

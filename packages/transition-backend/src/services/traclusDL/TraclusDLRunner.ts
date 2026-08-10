@@ -10,6 +10,8 @@ import { ExecutableJob } from '../executableJob/ExecutableJob';
 import { TraclusDLJobType } from './TraclusDLJob';
 import { EventEmitter } from 'events';
 import { runRustImplOnce } from './TraclusDLProcess';
+import { getGeoJsonFromCorridorCsvFile } from './traclusDLUtils';
+import { TraclusDLConstants } from 'transition-common/lib/api/traclusDL';
 
 export const traclusDLCalculate = async (
     job: ExecutableJob<TraclusDLJobType>,
@@ -35,26 +37,25 @@ class TraclusDLRunner {
     }
 
     run = async (): Promise<TraclusDLCalculationResult> => {
-        try {
-            const filePath = this.job.getFilePath('input');
-            const parameters = this.job.attributes.data.parameters.inputParameters;
-            const fieldMappings = this.job.attributes.data.parameters.demandAttributes.fileAndMapping.fieldMappings;
+        this.job.registerOutputFile('segments', TraclusDLConstants.SEGMENTS_FILE_NAME);
+        this.job.registerOutputFile('corridors', TraclusDLConstants.CORRIDORS_FILE_NAME);
 
-            const { stdout, stderr } = await runRustImplOnce(filePath, fieldMappings, parameters);
+        const filePath = this.job.getFilePath('input');
+        const parameters = this.job.attributes.data.parameters.inputParameters;
+        const fieldMappings = this.job.attributes.data.parameters.demandAttributes.fileAndMapping.fieldMappings;
 
-            if (stderr) {
-                throw new Error(stderr);
-            }
+        const stdout = await runRustImplOnce(filePath, fieldMappings, parameters);
 
-            return {
-                completed: true,
-                percentComplete: 100,
-                consoleOutput: stdout.trim()
-            };
-        } catch (error) {
-            console.error('Error running TraClus-DL calculation:', error);
-            throw error;
-        }
+        const corridorFilePath = this.job.getFilePath('corridors');
+        const corridorGeoJson = await getGeoJsonFromCorridorCsvFile(corridorFilePath);
+
+        return {
+            consoleOutput: stdout.trim(),
+            corridorGeoJson,
+            completed: true
+        };
+
+
     };
 }
 export default { runRustImplOnce };
