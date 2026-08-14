@@ -1,5 +1,8 @@
 import fs from 'fs';
-import { MappingTraclusDLOdDemandFromCsvAttributes, TraclusDLOdDemandFromCsvAttributes } from 'transition-common/lib/services/traclusDL/type';
+import {
+    MappingTraclusDLOdDemandFromCsvAttributes,
+    TraclusDLOdDemandFromCsvAttributes
+} from 'transition-common/lib/services/traclusDL/type';
 import { TraclusDLConstants } from 'transition-common/lib/api/traclusDL';
 import { OdTripCsvMapping, parseOdTripsFromCsvStream } from '../odTrip/odTripProvider';
 import { Transform } from 'stream';
@@ -11,20 +14,16 @@ const CORRIDOR_MAPPING: TraclusDLOdDemandFromCsvAttributes = {
     originLat: 'yorigin',
     originLon: 'xorigin',
     destinationLat: 'ydestination',
-    destinationLon: 'xdestination',
-
+    destinationLon: 'xdestination'
 };
 
-
 export const getGeoJsonFromInputCsvFile = async (
-    absoluteUserDir: string,
-    csvFileMapping: MappingTraclusDLOdDemandFromCsvAttributes
+    absoluteInputDir: string,
+    fieldMappings: TraclusDLOdDemandFromCsvAttributes,
+    status: 'imported' | 'job'
 ): Promise<GeoJSON.FeatureCollection<GeoJSON.MultiLineString>> => {
-    const csvFilePath = `${absoluteUserDir}/${TraclusDLConstants.CSV_FILE_NAME}`;
-    const fieldMappings = csvFileMapping.fileAndMapping.fieldMappings;
-
-    console.log(`Getting GeoJSON from CSV file at path: ${csvFilePath} with field mappings:`, fieldMappings);
-    return await getGeoJsonFromFilePath(csvFilePath, fieldMappings);
+    const geoJson = await getGeoJsonFromFilePath(absoluteInputDir, fieldMappings);
+    return setGeoJsonFeatureStatus(geoJson, status);
 };
 
 export const getGeoJsonFromCorridorCsvFile = async (
@@ -67,6 +66,7 @@ const getGeoJsonFromFilePath = async (
     const multiLineStrings: number[][][] = [];
     for (const odTrip of odTrips) {
         if (multiLineStrings.length >= MAX_DISPLAY_LINES) {
+            console.warn(`Reached maximum display lines of ${MAX_DISPLAY_LINES}. Some lines will not be included in the GeoJSON output.`);
             break;
         }
 
@@ -79,7 +79,6 @@ const getGeoJsonFromFilePath = async (
         ]);
     }
 
-    console.log(`Parsed ${multiLineStrings.length} lines from CSV file into GeoJSON MultiLineString.`);
     return {
         type: 'FeatureCollection',
         features: [
@@ -95,4 +94,18 @@ const getGeoJsonFromFilePath = async (
             }
         ]
     };
+};
+
+const setGeoJsonFeatureStatus = (
+    geoJson: GeoJSON.FeatureCollection<GeoJSON.MultiLineString>,
+    status: 'imported' | 'job'
+): GeoJSON.FeatureCollection<GeoJSON.MultiLineString> => {
+    geoJson.features.forEach((feature) => {
+        feature.properties = {
+            ...feature.properties,
+            status
+        };
+    });
+
+    return geoJson;
 };

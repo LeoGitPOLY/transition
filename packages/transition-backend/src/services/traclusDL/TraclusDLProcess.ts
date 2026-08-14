@@ -16,15 +16,18 @@ export const runRustImplOnce = async (
     filePath: string,
     fieldMappings: TraclusDLOdDemandFromCsvAttributes,
     parameters: TraclusDLInputParameters
-): Promise<string> => {
+): Promise<{ stdout: string; stderr: string }> => {
     const exe = path.join(RUST_IMPL_DIR, 'traclusdl_cli');
     const computationMapping = getComputationMapping(fieldMappings);
-    const mode = parameters.isParallel ? 'parallel-rayon' : 'serial';
+
+    //TODO: For now, we always use the parallel mode. In the future, we can chose the number of CPU cores to use
+    const mode = 'parallel-rayon';
 
     const cmdArgs: string[] = [
         '--file',
         filePath,
-        '--output', TraclusDLConstants.MODULE_NAME,
+        '--output',
+        TraclusDLConstants.MODULE_NAME,
         '--max_dist',
         parameters.maxDistance.toString(),
         '--min_density',
@@ -41,14 +44,8 @@ export const runRustImplOnce = async (
         'performance'
     ];
 
-    const { stdout, stderr } = await execFileAsync(exe, cmdArgs);
-
-    if (stderr) {
-        throw new Error(`Error running TraClus-DL Rust implementation: ${stderr}`);
-    }
-    return stdout;
+    return await execFileAsync(exe, cmdArgs);
 };
-
 
 // This is the exact name of fields traclusDl executable expects in the mapping file
 // It is used to override the fields of CsvFieldMappingDescriptor for computation

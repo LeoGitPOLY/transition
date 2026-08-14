@@ -106,9 +106,7 @@ export class TraclusDLUtils {
         });
     }
 
-    private static async _getBackendCalculationResultsByJobId(
-        jobId: number
-    ): Promise<TraclusDLCalculationResult> {
+    private static async _getBackendCalculationResultsByJobId(jobId: number): Promise<TraclusDLCalculationResult> {
         return new Promise((resolve, reject) => {
             serviceLocator.socketEventManager.emit(
                 JobsConstants.LIST_JOBS,
@@ -116,17 +114,23 @@ export class TraclusDLUtils {
                 (response: Status.Status<{ jobs: ReturnedJobAttributes[]; totalCount: number }>) => {
                     try {
                         const { jobs } = Status.unwrap(response);
-                        if (!jobs) { throw new Error('No jobs found'); }
+                        if (!jobs) {
+                            throw new Error('No jobs found');
+                        }
 
                         const job = jobs.find((j) => j.id === jobId);
-                        if (!job) { throw new Error('Job not found'); }
+                        if (!job) {
+                            throw new Error('Job not found');
+                        }
 
                         const jobStatus = job.status;
                         if (jobStatus !== 'completed' && jobStatus !== 'failed') {
                             throw new Error(`Job is not completed or failed, current status: ${jobStatus}`);
                         }
                         const results = job.data.results as TraclusDLCalculationResult;
-                        if (!results) { throw new Error('No results found for the job'); }
+                        if (!results) {
+                            throw new Error('No results found for the job');
+                        }
 
                         resolve(results);
                     } catch (error) {

@@ -73,7 +73,8 @@ export default function (socket: EventEmitter, userId: number) {
             callback: (status: Status.Status<GeoJSON.FeatureCollection>) => void
         ) => {
             try {
-                const geoJson = await getGeoJsonFromInputCsvFile(absoluteImportDir, csvFileMapping);
+                const csvFilePath = `${absoluteImportDir}/${TraclusDLConstants.CSV_FILE_NAME}`;
+                const geoJson = await getGeoJsonFromInputCsvFile(csvFilePath, csvFileMapping.fileAndMapping.fieldMappings, 'imported');
                 callback(Status.createOk(geoJson));
             } catch (error) {
                 callback(Status.createError(error instanceof Error ? error.message : 'ServerError getting GeoJSON'));

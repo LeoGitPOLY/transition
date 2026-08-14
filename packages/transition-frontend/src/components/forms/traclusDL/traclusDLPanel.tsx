@@ -9,33 +9,29 @@ import React from 'react';
 import { withTranslation, WithTranslation } from 'react-i18next';
 
 import TraclusDLForm, { TraclusDLFormHandle } from './traclusDLForm';
-import TraclusDParametersPanel from './traclusDLParametersPanel';
-
-import { TraclusDLInputParameters } from 'transition-common/lib/services/traclusDL/type';
-
-export type Calculation = {
-    calculationId: string;
-    jobId: number | null;
-    parameters: TraclusDLInputParameters;
-};
+import TraclusDLCalculationPanel from './traclusDLCalculationPanel';
+import { TraclusDLOdDemandFromCsv } from 'transition-common/lib/services/traclusDL/TraclusDLOdDemandFromCsv';
 
 const TraclusDLPanel: React.FunctionComponent<WithTranslation> = () => {
     const formRef = React.useRef<TraclusDLFormHandle>(null);
 
-    const [modifiedCalculation, setModifiedCalculation] = React.useState<Calculation | undefined>(undefined);
+    const [calculationJobId, setCalculationJobId] = React.useState<number | null | undefined>(undefined);
+    const [calculationDemand, setCalculationDemand] = React.useState<TraclusDLOdDemandFromCsv | undefined>(undefined);
 
-    const onOpenParameters = (calculation: Calculation) => {
-        setModifiedCalculation(calculation);
+    const isCalculationOpen = calculationJobId !== undefined && calculationDemand !== undefined;
+
+    const onOpenCalculation = (jobId: number | null, demand: TraclusDLOdDemandFromCsv) => {
+        setCalculationJobId(jobId);
+        setCalculationDemand(demand);
     };
 
-    const onBackFromParametersPanel = async (parameters?: TraclusDLInputParameters) => {
-        if (!parameters || !modifiedCalculation) {
-            setModifiedCalculation(undefined);
-            return;
-        }
+    const onBackFromParametersPanel = async (newJobId: number | null) => {
+        setCalculationJobId(undefined);
+        setCalculationDemand(undefined);
 
-        await formRef.current?.submitCalculation(modifiedCalculation, parameters);
-        setModifiedCalculation(undefined);
+        if (newJobId) {
+            await formRef.current?.newCalculation(newJobId);
+        }
     };
 
     return (
@@ -46,14 +42,14 @@ const TraclusDLPanel: React.FunctionComponent<WithTranslation> = () => {
             </h3>
 
             {/* Use the display style to keep the form state active */}
-            <div style={{ display: modifiedCalculation ? 'none' : 'block' }}>
-                <TraclusDLForm formRef={formRef} onOpenParameters={onOpenParameters} />
+            <div style={{ display: isCalculationOpen ? 'none' : 'block' }}>
+                <TraclusDLForm formRef={formRef} onOpenCalculation={onOpenCalculation} />
             </div>
-
-            {modifiedCalculation && (
+            {isCalculationOpen && (
                 <React.Fragment>
-                    <TraclusDParametersPanel
-                        parameters={modifiedCalculation.parameters}
+                    <TraclusDLCalculationPanel
+                        jobId={calculationJobId}
+                        demand={calculationDemand}
                         onBack={onBackFromParametersPanel}
                     />
                 </React.Fragment>

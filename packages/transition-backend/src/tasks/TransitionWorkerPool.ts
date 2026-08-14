@@ -150,15 +150,25 @@ const wrapTraclusDL = async (task: ExecutableJob<TraclusDLJobType>): Promise<boo
         throw new TrError('Invalid input file', 'TRJOB0004', 'transit:transitRouting:errors:InvalidInputFile');
     }
 
-    const result = await traclusDLCalculate(task, {
+    const { results, files, errors } = await traclusDLCalculate(task, {
         progressEmitter: newProgressEmitter(task),
         isCancelled: getTaskCancelledFct(task)
     });
 
+    // FIXME Consider uniformizing the way resources and results are saved in
+    // Same comment as in wrapBatchRoute and wrapBatchAccessMap
     await task.refresh();
-    task.attributes.data.results = result;
+    task.attributes.data.results = results;
+    task.attributes.resources = { files };
 
-    return result.completed;
+    // Set status messages if there are errors
+    if (errors.length > 0) {
+        task.attributes.statusMessages = {
+            errors: errors
+        };
+    }
+
+    return results.completed;
 };
 
 // Exported for unit tests

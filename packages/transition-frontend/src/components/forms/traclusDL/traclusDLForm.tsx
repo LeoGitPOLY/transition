@@ -10,13 +10,10 @@ import { withTranslation, WithTranslation } from 'react-i18next';
 import TraclusDLOdDemandFromCsv from 'transition-common/lib/services/traclusDL/TraclusDLOdDemandFromCsv';
 import GenericCsvImportAndMappingForm from '../csv/GenericCsvImportAndMappingForm';
 import Button from 'chaire-lib-frontend/lib/components/input/Button';
-import { Calculation } from './traclusDLPanel';
 import Collapsible from 'react-collapsible';
 import ExecutableJobComponent from '../../parts/executableJob/ExecutableJobComponent';
 import {
-    TraclusDLInputParameters,
     MappingTraclusDLOdDemandFromCsvAttributes,
-    defaultParameters,
     TraclusDLCalculationResult
 } from 'transition-common/lib/services/traclusDL/type';
 import { TraclusDLUtils } from '../../../services/traclusDL/TraclusDLUtils';
@@ -25,17 +22,16 @@ import EventManager from 'chaire-lib-common/lib/services/events/EventManager';
 import { MapUpdateLayerEventType } from 'chaire-lib-frontend/lib/services/map/events/MapEventsCallbacks';
 import serviceLocator from 'chaire-lib-common/lib/utils/ServiceLocator';
 import { TraclusDLConstants } from 'transition-common/lib/api/traclusDL';
-import { v4 as uuidv4 } from 'uuid';
 import { faEye, faPencilAlt } from '@fortawesome/free-solid-svg-icons';
 
 // Imperative handle exposed to TraclusDLPanel
 export interface TraclusDLFormHandle {
-    submitCalculation: (calculation: Calculation, parameters: TraclusDLInputParameters) => Promise<void>;
+    newCalculation: (jobId: number | null) => Promise<void>;
 }
 
 export interface TraclusDLFormProps extends WithTranslation {
     formRef: React.Ref<TraclusDLFormHandle>;
-    onOpenParameters: (calculation: Calculation) => void;
+    onOpenCalculation: (jobId: number | null, demand: TraclusDLOdDemandFromCsv) => void;
 }
 
 const mockMapping: MappingTraclusDLOdDemandFromCsvAttributes = {
@@ -64,8 +60,7 @@ const TraclusDLForm: React.FunctionComponent<TraclusDLFormProps> = (props) => {
     const [importErrors, setImportErrors] = React.useState<string[]>([]);
     const [isImportDone, setImportDone] = React.useState(false);
 
-    const [calculations, setCalculations] = React.useState<Calculation[]>([]);
-    const [calculationErrors, setCalculationErrors] = React.useState<string[]>([]);
+    // const selectedJobId = useRef<number | null>(null);
 
     const [selectedResults, setSelectedResults] = React.useState<TraclusDLCalculationResult | null>(null);
     const [selectedResultsErrors, setSelectedResultsErrors] = React.useState<string[]>([]);
@@ -87,14 +82,25 @@ const TraclusDLForm: React.FunctionComponent<TraclusDLFormProps> = (props) => {
         setImportDone(false);
         setSelectedResults(null);
     };
+    const updateMapLayers = (corridorGeoJson?: GeoJSON.FeatureCollection, inputGeoJson?: GeoJSON.FeatureCollection) => {
+        const corridorLayer = corridorGeoJson ? corridorGeoJson : ({} as GeoJSON.FeatureCollection);
+        (serviceLocator.eventManager as EventManager).emitEvent<MapUpdateLayerEventType>('map.updateLayer', {
+            layerName: 'traclusDLOutputCorridors',
+            data: corridorLayer
+        });
 
+        const inputLayer = inputGeoJson ? inputGeoJson : ({} as GeoJSON.FeatureCollection);
+        (serviceLocator.eventManager as EventManager).emitEvent<MapUpdateLayerEventType>('map.updateLayer', {
+            layerName: 'traclusDLInputOdLines',
+            data: inputLayer
+        });
+
+    };
     const getGeoJsonFromCsvFile = async (demandToConvert: TraclusDLOdDemandFromCsv) => {
+        updateMapLayers(undefined, undefined);
         await TraclusDLUtils.getGeoJsonFromCsvFile(demandToConvert)
             .then((odLines) => {
-                (serviceLocator.eventManager as EventManager).emitEvent<MapUpdateLayerEventType>('map.updateLayer', {
-                    layerName: 'traclusDlInputOdLines',
-                    data: odLines
-                });
+                updateMapLayers(undefined, odLines);
             })
             .catch((error) => {
                 onChangeInputFile();
@@ -102,77 +108,29 @@ const TraclusDLForm: React.FunctionComponent<TraclusDLFormProps> = (props) => {
             });
     };
 
-    const onNewCalculation = () => {
-        const calculation: Calculation = {
-            calculationId: uuidv4(),
-            jobId: null,
-            parameters: { ...defaultParameters }
-        };
-
-        props.onOpenParameters(calculation);
+    const newCalculation = async (jobId: number | null): Promise<void> => {
+        // TODO (LEO): something with the jobId back: subscribe to the job progress
+        console.log('New calculation job created with ID:', jobId);
     };
+    React.useImperativeHandle(props.formRef, () => ({ newCalculation }), []);
 
-    const submitCalculation = async (calculation: Calculation, parameters: TraclusDLInputParameters): Promise<void> => {
-        setCalculationErrors([]);
-
-        try {
-            const jobId = await TraclusDLUtils.runCalculation(demand, parameters);
-            console.log('TraClus-DL calculation job created with ID:', jobId);
-
-            setCalculations((prev) => {
-                const index = prev.findIndex((calc) => calc.calculationId === calculation.calculationId);
-
-                const updatedCalculation: Calculation = {
-                    ...calculation,
-                    jobId,
-                    parameters
-                };
-
-                // TODO (LEO) : stop the job on server + other cleanup (?)
-                if (index !== -1) {
-                    const next = [...prev];
-                    next[index] = updatedCalculation;
-                    return next;
-                }
-
-                return [...prev, updatedCalculation];
-            });
-        } catch (error) {
-            const message = error instanceof Error ? error.message : String(error);
-            setCalculationErrors([message]);
-        }
-    };
-    React.useImperativeHandle(props.formRef, () => ({ submitCalculation }), [demand]);
-
-    // ExecutableJobComponent custom action callback:
+    // ExecutableJobComponent custom action callback: onSelectCalculationResults
     const onSelectCalculationResults = async (jobId: number) => {
-        await TraclusDLUtils.getCalculationResultsByJobId(jobId).
-            then((results) => {
-                // TODO (LEO) : better way to handle empty GeoJSON
-                const corridorGeoJson = results.corridorGeoJson ? results.corridorGeoJson : {
-                    type: 'FeatureCollection',
-                    features: [
-                        {
-                            type: 'Feature',
-                            properties: {},
-                            geometry: {
-                                type: 'MultiLineString',
-                                coordinates: [[]]
-                            }
-                        }
-                    ]
-                } as GeoJSON.FeatureCollection<GeoJSON.MultiLineString>;
-
-                (serviceLocator.eventManager as EventManager).emitEvent<MapUpdateLayerEventType>('map.updateLayer', {
-                    layerName: 'traclusDlCorridorsOutput',
-                    data: corridorGeoJson
-                });
+        await TraclusDLUtils.getCalculationResultsByJobId(jobId)
+            .then((results) => {
+                updateMapLayers(results.corridorGeoJson, results.inputGeoJson);
                 setSelectedResults(results);
                 setSelectedResultsErrors([]);
-            }).catch((error) => {
+            })
+            .catch((error) => {
                 const message = error instanceof Error ? error.message : String(error);
                 setSelectedResultsErrors([message]);
             });
+    };
+
+    // ExecutableJobComponent custom action callback: onEditCalculation
+    const onEditCalculation = async (jobId: number) => {
+        props.onOpenCalculation(jobId, demand);
     };
 
     // TODO (LEO) : props.t('Something')
@@ -206,35 +164,32 @@ const TraclusDLForm: React.FunctionComponent<TraclusDLFormProps> = (props) => {
                 </div>
             </Collapsible>
 
-            <Collapsible trigger={'Traclus DL Calculations'} open={isImportDone} transitionTime={100}>
-                {isImportDone && (
-                    <React.Fragment>
-                        <div className="tr__form-buttons-container">
-                            <Button label="+ Nouvelle Calculation" color="blue" onClick={onNewCalculation} />
-                        </div>
-                        <FormErrors errors={calculationErrors} />
-                        <ExecutableJobComponent
-                            customActions={[
-                                { title: 'Select', callback: onSelectCalculationResults, icon: faEye },
-                                { title: 'Edit', callback: onSelectCalculationResults, icon: faPencilAlt }
-                            ]}
-                            defaultPageSize={10}
-                            jobType="traclusDL"
-                        />
-                    </React.Fragment>
-                )}
+            <Collapsible trigger={'Traclus DL Calculations'} open={true} transitionTime={100}>
+                <div className="tr__form-buttons-container">
+                    <Button
+                        label="+ Nouveau Calcul"
+                        disabled={!isImportDone}
+                        color="blue"
+                        onClick={() => props.onOpenCalculation(null, demand)}
+                    />
+                </div>
+                <ExecutableJobComponent
+                    customActions={[
+                        { title: 'Select', callback: onSelectCalculationResults, icon: faEye },
+                        { title: 'Edit', callback: onEditCalculation, icon: faPencilAlt }
+                    ]}
+                    defaultPageSize={5}
+                    jobType="traclusDL"
+                />
             </Collapsible>
             <Collapsible trigger={'Selected Results Information'} open={selectedResults !== null} transitionTime={100}>
                 {selectedResults && selectedResultsErrors.length === 0 && (
                     <React.Fragment>
                         <h4>{'Selected Results Information'}</h4>
                         <h4>{`Console Output: ${selectedResults.consoleOutput}`}</h4>
-                        <h4>{`Corridor GeoJSON: ${JSON.stringify(selectedResults.corridorGeoJson)}`}</h4>
                     </React.Fragment>
                 )}
-                {selectedResultsErrors.length > 0 && (
-                    <FormErrors errors={selectedResultsErrors} />
-                )}
+                {selectedResultsErrors.length > 0 && <FormErrors errors={selectedResultsErrors} />}
             </Collapsible>
         </div>
     );
