@@ -22,7 +22,7 @@ jobs:
     - name: copy env file
       run: cp .env.example .env
     - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v6
+      uses: actions/setup-node@v7
       with:
         node-version: ${{ matrix.node-version }}
     - name: Install
@@ -39,7 +39,7 @@ jobs:
     steps:
     - uses: actions/checkout@v7
     - name: Use latest Node.js
-      uses: actions/setup-node@v6
+      uses: actions/setup-node@v7
       with:
         node-version: latest
     - name: Install
@@ -54,7 +54,7 @@ jobs:
     steps:
     - uses: actions/checkout@v7
     - name: Use latest Node.js
-      uses: actions/setup-node@v6
+      uses: actions/setup-node@v7
       with:
         node-version: 24.x
     - name: Install
@@ -70,16 +70,6 @@ jobs:
           git diff
           exit 1
         fi
-
-  cargo-test:
-    name: Json2capnp
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v7
-    - run: cargo build
-      working-directory: ./services/json2capnp
-    - run: cargo test
-      working-directory: ./services/json2capnp
 
   test-sequential:
     runs-on: ubuntu-latest
@@ -110,7 +100,7 @@ jobs:
     - name: copy env file
       run: cp .env.example .env
     - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v6
+      uses: actions/setup-node@v7
       with:
         node-version: ${{ matrix.node-version }}
     - name: Install

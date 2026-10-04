@@ -9,6 +9,7 @@ import knex from 'chaire-lib-backend/lib/config/shared/db.config';
 import { validate as uuidValidate } from 'uuid';
 import _cloneDeep from 'lodash/cloneDeep';
 import knexPostgis from 'knex-postgis';
+import { _isBlank } from 'chaire-lib-common/lib/utils/LodashExtensions';
 
 import {
     exists,
@@ -24,6 +25,14 @@ import {
 import TrError from 'chaire-lib-common/lib/utils/TrError';
 import Preferences from 'chaire-lib-common/lib/config/Preferences';
 import { PathAttributes } from 'transition-common/lib/services/path/Path';
+import {
+    createDuplicateQueryWithIdMapping,
+    joinWithClauses,
+    getIdMappingQuery,
+    getIdSelectionQuery,
+    getQueryFilters,
+    mapDuplicateIds
+} from './utils.db.queries';
 
 const tableName = 'tr_transit_paths';
 const linesTableName = 'tr_transit_lines';
@@ -48,7 +57,7 @@ const collection = async () => {
     try {
         const response = await knex.raw(
             `
-      SELECT 
+      SELECT
         p.*,
         /*l.agency_id,*/
         COALESCE(p.nodes,    '{}') as nodes,
@@ -231,6 +240,108 @@ const read = async (id: string) => {
     }
 };
 
+/**
+ * Duplicate paths, possibly for a specific line mapping for lines.
+ * Either an array of path, or a lineMapping must be specified.
+ *
+ * @param param The parameter object
+ * @param param.pathIds The path IDs to duplicate
+ * @param param.lineIdMapping The mapping of original line IDs to new line IDs
+ * @param param.transaction The transaction to use for the duplication, if any
+ * @returns A mapping of the ID of the paths copied to the ID of the copy.
+ */
+const duplicate = async ({
+    pathIds: requestedPathIds = [],
+    lineIdMapping = {},
+    newPathSuffix = '',
+    transaction
+}: {
+    pathIds?: string[];
+    lineIdMapping?: { [key: string]: string };
+    newPathSuffix?: string;
+    transaction?: Knex.Transaction;
+}): Promise<{ [originalPathId: string]: string }> => {
+    try {
+        // Deduplicate path ids, in case a path is requested twice
+        const pathIds = [...new Set(requestedPathIds)];
+        if (Object.keys(lineIdMapping).length === 0 && pathIds.length === 0) {
+            throw new Error(
+                'There needs to be either a line mapping or an array of path ids to duplicate, none provided.'
+            );
+        }
+        // Validate that mappings and arrays are all uuids
+        Object.entries(lineIdMapping).forEach(([originalId, mappedId]) => {
+            if (!uuidValidate(originalId) || !uuidValidate(mappedId)) {
+                throw new Error('Line mappings must be valid uuids');
+            }
+        });
+        pathIds.forEach((pathId) => {
+            if (!uuidValidate(pathId)) {
+                throw new Error('Path ids must be valid uuids');
+            }
+        });
+
+        const lineMappingQuery = getIdMappingQuery(lineIdMapping, 'line', tableName);
+        const pathSelectionQuery = getIdSelectionQuery(pathIds, tableName);
+
+        // Nested function to require a transaction around the duplication
+        const duplicateWithTransaction = async (trx: Knex.Transaction) => {
+            // These queries are inspired by both
+            // https://stackoverflow.com/questions/29256888/insert-into-from-select-returning-id-mappings
+            // and
+            // https://dba.stackexchange.com/questions/46410/how-do-i-insert-a-row-which-contains-a-foreign-key
+            // so that a single query can copy for many lines and path ids
+
+            // Query to copy the requested paths for the requested lines if any.
+            // Using raw as it is complex to put in knex
+            const pathName = _isBlank(newPathSuffix) ? 'name' : 'name || ?';
+            const withClauses = joinWithClauses([lineMappingQuery, pathSelectionQuery]);
+            const duplicatePathsQuery = `${withClauses.query}\
+                insert into ${tableName}(internal_id, direction, line_id, name, is_enabled, geography, nodes, stops, segments, description, data, is_frozen) \
+                    select internal_id, direction, ${lineMappingQuery.mappedField}, ${pathName}, is_enabled, geography, nodes, stops, segments, description, data, is_frozen
+                    from ${tableName} \
+                    ${lineMappingQuery.mappedJoin} \
+                    ${pathSelectionQuery.mappedJoin} \
+                    order by integer_id returning id, integer_id`;
+
+            // Put the where queries and bindings for lines and services in arrays to better join them if necessary in the query
+            const pathWhereQueries = getQueryFilters([lineMappingQuery, pathSelectionQuery]);
+
+            const pathIdMapping = await knex
+                .raw(
+                    createDuplicateQueryWithIdMapping(
+                        tableName,
+                        duplicatePathsQuery,
+                        pathWhereQueries.whereClauses.join(' and '),
+                        'integer_id'
+                    ),
+                    [
+                        ...pathWhereQueries.bindings,
+                        ...withClauses.bindings,
+                        ...(_isBlank(newPathSuffix) ? [] : [newPathSuffix])
+                    ]
+                )
+                .transacting(trx);
+
+            if (pathIdMapping.rows.length === 0) {
+                return {};
+            }
+
+            return mapDuplicateIds<string>(pathIdMapping.rows);
+        };
+        // Make sure the update is done in a transaction, use the one in the options if available
+        return transaction
+            ? await duplicateWithTransaction(transaction)
+            : await knex.transaction(duplicateWithTransaction);
+    } catch (error) {
+        throw new TrError(
+            `Cannot duplicate paths for lines ${JSON.stringify(lineIdMapping)} and path ids ${requestedPathIds} in database (knex error: ${error})`,
+            'DBPATH0003',
+            'TransitPathCannotUpdateBecauseDatabaseError'
+        );
+    }
+};
+
 export default {
     exists: exists.bind(null, knex, tableName),
     read,
@@ -250,5 +361,6 @@ export default {
     destroy: destroy.bind(null, knex),
     collection,
     geojsonCollection,
-    geojsonCollectionForServices
+    geojsonCollectionForServices,
+    duplicate
 };

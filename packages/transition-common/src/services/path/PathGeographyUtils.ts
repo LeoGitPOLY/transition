@@ -16,6 +16,7 @@ import { RoutingMode } from 'chaire-lib-common/lib/config/routingModes';
 import { generatePathGeographyFromRouting } from './PathGeographyGenerator';
 import type { SegmentChangeInfo } from './PathTypes';
 import { kphToMps } from 'chaire-lib-common/lib/utils/PhysicsUtils';
+import { ceilToPositiveInteger } from 'chaire-lib-common/lib/utils/MathUtils';
 
 /*
 DEFAULT_MIN_MATCHING_TIMESTAMP is the minimum interval between timestamps for the matching routing (using OSRM).
@@ -26,6 +27,7 @@ DEFAULT_ROUTING_SPEED_MPS is another arbitrary speed for matching which makes it
 const DEFAULT_MIN_MATCHING_TIMESTAMP = 500; // can be overriden by data.minMatchingTimestamp, in seconds
 const DEFAULT_ROUTING_SPEED_MPS = 20;
 const DEFAULT_WAYPOINT_RADIUS_METERS = 15;
+
 export interface PathGeographyResults {
     direct: MapMatchingResults;
     points: FeatureCollection<Point>;
@@ -41,7 +43,7 @@ class PathGeographyUtils {
         const lineWithPrevious = turf.lineString([from.geometry.coordinates, to.geometry.coordinates]);
         const lineWithPreviousLength = turf.length(lineWithPrevious, { units: 'meters' });
         // Using a default speed of 15 km/h seems just fine with map matching (faster speeds makes osrm fails to find some routes):
-        return Math.ceil(lineWithPreviousLength / Math.max(defaultRunningSpeedMps, kphToMps(15)));
+        return ceilToPositiveInteger(lineWithPreviousLength / Math.max(defaultRunningSpeedMps, kphToMps(15)));
     };
 
     initializePointGeojsonCollection = (): FeatureCollection<Point> => {
@@ -335,10 +337,10 @@ const updateGeography = async (path: any, changesInfo?: SegmentChangeInfo): Prom
         path.attributes.data.geographyErrors = pathGeographyUtils.getErrorsForDirectPath(points);
         return { path };
     } else {
-        path.attributes.data.directRouteBetweenTerminalsTravelTimeSeconds = Math.ceil(
+        path.attributes.data.directRouteBetweenTerminalsTravelTimeSeconds = ceilToPositiveInteger(
             direct.matchings[0].legs[0].duration
         );
-        path.attributes.data.directRouteBetweenTerminalsDistanceMeters = Math.ceil(
+        path.attributes.data.directRouteBetweenTerminalsDistanceMeters = ceilToPositiveInteger(
             direct.matchings[0].legs[0].distance
         );
     }
